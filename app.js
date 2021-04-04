@@ -78,7 +78,7 @@ const toCoords = (xRatio, yRatio) => {
     .filter((_, i) => i !== 0)
 }
 
-// ==== draw horizontal line && text ======================
+// ==== draw yAxis line && text ======================
 const yAxis = (ctx, yMax, yMin) => {
   const scaleStep = VIEW_HEIGHT / ROWS_COUNT
   const textStep = (yMax - yMin) / ROWS_COUNT
@@ -100,14 +100,14 @@ const yAxis = (ctx, yMax, yMin) => {
   ctx.closePath()
 }
 
+// ==== draw xAxis text ===================================
 const xAxis = (ctx, xData, xRatio) => {
   const columnsCount = 8
   const scaleStep = Math.round(xData.length / columnsCount)
 
   ctx.beginPath()
   for (let i = 1; i <= xData.length; i += scaleStep) {
-    console.log('%cqqq:', 'color: green;', i)
-     const textScale_X = new Date(xData[i]).toDateString()
+     const textScale_X = toShortDate(xData[i])
      const x = i * xRatio
      
     ctx.fillText(textScale_X, x, DPI_HEIGHT - 5)
@@ -503,3 +503,22 @@ function getChartData() {
   ][0]
 }
 // ========================================================
+
+function toShortDate(timestamp) {
+  const shortMounth = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'June',
+    'July',
+    'Aug',
+    'Sept',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
+  const date = new Date(timestamp)
+  return `${shortMounth[date.getMonth()]} ${date.getDate()} ${date.getFullYear()}`
+}
