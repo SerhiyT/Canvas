@@ -7,6 +7,8 @@ const VIEW_HEIGHT = DPI_HEIGHT - PADDING * 2
 const VIEW_WIDTH = DPI_WIDTH
 const ROWS_COUNT = 5
 
+
+// compute boundaries =====================================
 const computeBoundaries = ({ columns, types }) => {
   let min
   let max
@@ -42,7 +44,42 @@ const chart = (canvas, arrData) => {
   const yRatio = VIEW_HEIGHT / (yMax - yMin)
   const xRatio = VIEW_WIDTH / (arrData.columns[0].length - 2)
 
-  // ==== y scale text ====================================
+  const yData = arrData.columns.filter((column) => arrData.types[column[0]] === 'line')
+  const xData = arrData.columns.filter((column) => arrData.types[column[0]] !== 'line')[0]
+
+  // yData.forEach(column => {
+  //   const colName = column[0]
+  //   const coords = column
+  //     .map(toCoords(xRatio, yRatio))
+  //     .filter((_, i) => i !== 0)
+
+  //     const color = arrData.colors[colName]
+  //     drawLine(ctx, coords, { color })
+  // })
+
+  // draw horizontal line && text
+  yAxis(ctx, yMax, yMin)
+  xAxis(ctx, xData, xRatio)
+
+  yData.map(toCoords(xRatio, yRatio)).forEach((coords, i) => {
+    const color = arrData.colors[yData[i][0]]
+    drawLine(ctx, coords, { color })
+  })
+}
+
+//* closure / =============================================
+const toCoords = (xRatio, yRatio) => {
+  return column => 
+  column
+    .map((y, i ) => [
+      Math.floor((i - 1) * xRatio), 
+      Math.floor(DPI_HEIGHT - PADDING - y * yRatio)
+    ])
+    .filter((_, i) => i !== 0)
+}
+
+// ==== draw horizontal line && text ======================
+const yAxis = (ctx, yMax, yMin) => {
   const scaleStep = VIEW_HEIGHT / ROWS_COUNT
   const textStep = (yMax - yMin) / ROWS_COUNT
 
@@ -61,28 +98,29 @@ const chart = (canvas, arrData) => {
   }
   ctx.stroke()
   ctx.closePath()
-
-  arrData.columns.forEach(column => {
-    const colName = column[0]
-
-    if (arrData.types[colName] === 'line') {
-      const coords = column.map((y, i) => [
-          Math.floor((i - 1) * xRatio), 
-          Math.floor(DPI_HEIGHT - PADDING - y * yRatio)
-        ])
-        .filter((_, i) => i !==0)
-
-      const color = arrData.colors[colName]
-      drawLine(ctx, coords, { color })
-    }
-  })
 }
 
+const xAxis = (ctx, xData, xRatio) => {
+  const columnsCount = 8
+  const scaleStep = Math.round(xData.length / columnsCount)
+
+  ctx.beginPath()
+  for (let i = 1; i <= xData.length; i += scaleStep) {
+    console.log('%cqqq:', 'color: green;', i)
+     const textScale_X = new Date(xData[i]).toDateString()
+     const x = i * xRatio
+     
+    ctx.fillText(textScale_X, x, DPI_HEIGHT - 5)
+  }
+  ctx.closePath()
+}
+
+// ==== draw line =========================================
 const drawLine = (ctx, coords, { color }) => {
-  // ==== draw line ====================================
   ctx.beginPath()
   ctx.lineWidth = 4
   ctx.strokeStyle = color
+  
   coords.forEach(element => {
     const x = element[0]
     const y = element[1]
@@ -93,8 +131,11 @@ const drawLine = (ctx, coords, { color }) => {
   ctx.closePath()
 }
 
+
+// ==== CHART function call ===============================
 chart(document.getElementById('chart'), getChartData())
 
+// ==== get Chart Data ====================================
 function getChartData() {
   return [
     {
@@ -461,3 +502,4 @@ function getChartData() {
     },
   ][0]
 }
+// ========================================================
