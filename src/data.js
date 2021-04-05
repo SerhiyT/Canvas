@@ -354,8 +354,8 @@ export function getChartData() {
         x: 'x',
       },
       names: {
-        y0: '#0',
-        y1: '#1',
+        y0: 'Up',
+        y1: 'Down',
       },
       colors: {
         y0: '#87c58e',

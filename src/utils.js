@@ -1,4 +1,3 @@
-
 // compute boundaries =====================================
 export const computeBoundaries = ({ columns, types }) => {
   let min
@@ -33,7 +32,7 @@ export const isOver = (mouse, x, length, dpiWidth) => {
 }
 
 // ==== draw line =========================================
-export const drawLine = (ctx, coords, { color }) => {
+export const drawChartLine = (ctx, coords, { color }) => {
   ctx.beginPath()
   ctx.lineWidth = 4
   ctx.strokeStyle = color
@@ -79,4 +78,10 @@ export const toShortDate = (timestamp) => {
   ]
   const date = new Date(timestamp)
   return `${date.getDate()} ${shortMounth[date.getMonth()]} ${date.getFullYear()}`
+}
+
+// ========================================================
+
+export const css = (el, styles = {}) => {
+  Object.assign(el.style, styles)
 }

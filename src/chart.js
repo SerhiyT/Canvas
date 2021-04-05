@@ -1,15 +1,21 @@
 import './styles.scss'
-import { computeBoundaries, isOver, drawLine, drawPoint, toShortDate } from './utils'
+import { computeBoundaries, isOver, drawChartLine, drawPoint, toShortDate, css } from './utils'
 import {
   WIDTH, HEIGHT, DPI_WIDTH, DPI_HEIGHT, PADDING, VIEW_HEIGHT, VIEW_WIDTH, ROWS_COUNT 
 } from './const'
+import { tooltip } from './tooltip'
 
 
-export const chart = (canvas, arrData) => {
+export const chart = (root, arrData) => {
+  const canvas = root.querySelector('canvas')
   const ctx = canvas.getContext('2d')
+  const tip = tooltip(root.querySelector('[data-el="tooltip"]'))
+
   let raf
-  canvas.style.width = WIDTH + 'px'
-  canvas.style.height = HEIGHT + 'px'
+  css(canvas, {
+    width: WIDTH + 'px',
+    height: HEIGHT + 'px'
+  })
   canvas.width = DPI_WIDTH
   canvas.height = DPI_HEIGHT
 
@@ -25,13 +31,13 @@ export const chart = (canvas, arrData) => {
     const yData = arrData.columns.filter((column) => arrData.types[column[0]] === 'line')
     const xData = arrData.columns.filter((column) => arrData.types[column[0]] !== 'line')[0]
 
-    yAxis(ctx, yMax, yMin)
-    xAxis(ctx, xData, xRatio, proxy)
+    yAxis(yMax, yMin)
+    xAxis(xData, yData, xRatio)
 
     // == draw graph line =
     yData.map(toCoords(xRatio, yRatio)).forEach((coords, i) => {
       const color = arrData.colors[yData[i][0]]
-      drawLine(ctx, coords, { color })
+      drawChartLine(ctx, coords, { color })
 
       // == draw point ==
       for (const [x, y] of coords) {
@@ -54,45 +60,61 @@ export const chart = (canvas, arrData) => {
   })
 
   const mousemove = ({ clientX, clientY }) => {    // event: {..., clientX, clientY, ...}
-    const { left } = canvas.getBoundingClientRect()
+    const { left, top } = canvas.getBoundingClientRect()
     proxy.mouse = {
       x: (clientX - left) * 2,
+      tooltip: {
+        left: clientX - left ,
+        top: clientY - top
+      }
     }
   }
-
   const mouseleave = () => {
     proxy.mouse = null
+    tip.hide()
   }
 
   canvas.addEventListener('mousemove', mousemove)
   canvas.addEventListener('mouseleave', mouseleave)
 
-  return {
-    init() {
-      draw()
-    },
-    destroy() {
-      cancelAnimationFrame(raf)
-      canvas.removeEventListener('mousemove', mousemove)
-      canvas.removeEventListener('mouseleave', mouseleave)
+  // ==== draw xAxis text ===================================
+const xAxis = (xData, yData, xRatio) => {
+  const columnsCount = 8
+  const scaleStep = Math.round(xData.length / columnsCount)
+
+  ctx.beginPath()
+  for (let i = 1; i <= xData.length; i ++) {
+    const x = i * xRatio
+    if ((i - 1) % scaleStep === 0) {
+      const textScale_X = toShortDate(xData[i])
+      ctx.fillText(textScale_X, x, DPI_HEIGHT)
+
+    }
+
+    // == draw vertical line on chart by mouseOver ==
+    if (isOver(proxy.mouse, x, xData.length, DPI_WIDTH)) {
+      ctx.save()
+      ctx.moveTo(x, PADDING)
+      ctx.lineTo(x, DPI_HEIGHT - PADDING)
+      ctx.restore()
+      console.log('OVER')
+
+      tip.show(proxy.mouse.tooltip, {
+        title: toShortDate(xData[i]),
+        items: yData.map(column => ({
+          color: arrData.colors[column[0]],
+          name: arrData.names[column[0]],
+          value: column[i + 1]
+        }))
+      })
     }
   }
-}
-
-
-//* closure / =============================================
-const toCoords = (xRatio, yRatio) => {
-  return column => 
-  column
-    .map((y, i) => [
-      Math.floor((i - 1) * xRatio), 
-      Math.floor(DPI_HEIGHT - PADDING - y * yRatio)
-    ])
-    .filter((_, i) => i !== 0)
+  ctx.stroke()
+  ctx.closePath()
 }
 
 // ==== draw yAxis line && text ======================
-const yAxis = (ctx, yMax, yMin) => {
+const yAxis = (yMax, yMin) => {
   const scaleStep = VIEW_HEIGHT / ROWS_COUNT
   const textStep = (yMax - yMin) / ROWS_COUNT
 
@@ -113,30 +135,28 @@ const yAxis = (ctx, yMax, yMin) => {
   ctx.stroke()
   ctx.closePath()
 }
+//* closure / =============================================
+const toCoords = (xRatio, yRatio) => {
+  return column => 
+  column
+    .map((y, i) => [
+      Math.floor((i - 1) * xRatio), 
+      Math.floor(DPI_HEIGHT - PADDING - y * yRatio)
+    ])
+    .filter((_, i) => i !== 0)
+}
 
-// ==== draw xAxis text ===================================
-const xAxis = (ctx, xData, xRatio, proxy) => {
-  const columnsCount = 8
-  const scaleStep = Math.round(xData.length / columnsCount)
-
-  ctx.beginPath()
-  for (let i = 1; i <= xData.length; i ++) {
-    const x = i * xRatio
-    if ((i - 1) % scaleStep === 0) {
-      const textScale_X = toShortDate(xData[i])
-      ctx.fillText(textScale_X, x, DPI_HEIGHT)
-
-    }
-
-    if (isOver(proxy.mouse, x, xData.length, DPI_WIDTH)) {
-      ctx.save()
-        ctx.moveTo(x, PADDING)
-        ctx.lineTo(x, DPI_HEIGHT - PADDING)
-
-      ctx.restore()
-      console.log('OVER')
+  return {
+    init() {
+      draw()
+    },
+    destroy() {
+      cancelAnimationFrame(raf)
+      canvas.removeEventListener('mousemove', mousemove)
+      canvas.removeEventListener('mouseleave', mouseleave)
     }
   }
-  ctx.stroke()
-  ctx.closePath()
 }
+
+
+
